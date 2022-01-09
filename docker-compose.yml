@@ -1,0 +1,109 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql
+    restart: always
+    ports:
+      - 33060:3306
+    env_file:
+      - ./user/.env
+    cap_add:
+      - SYS_NICE
+
+  user-service:
+    depends_on:
+      - db
+    build: ./user/
+    restart: always
+    ports:
+      - 3001:3001
+    env_file:
+      - ./user/.env
+
+  note-service:
+    build: ./note/
+    restart: always
+    ports:
+      - 5000:5000
+    env_file:
+      - ./note/.env
+
+  note-app-gateway:
+    depends_on:
+      - db
+      - user-service
+      - note-service
+      - redis
+    build: ./note-app-gateway/
+    restart: always
+    ports:
+      - 9876:9876
+      - 8080:8080
+
+  redis:
+    container_name: redis-cache
+    image: redis:alpine
+    ports:
+      - 6379:6379
+
+  redis-slave:
+    image: redis:alpine
+    container_name: redis-cache-slave
+    ports:
+      - 6380:6379
+    command: redis-server --slaveof redis-cache 6379
+    depends_on:
+      - redis
+    env_file:
+      - ./user/.env
+
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    restart: always
+    ports:
+      - 3000:3000
+    volumes:
+      - ./datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+
+  mongo0:
+    image: mongo
+    container_name: mongodb0
+    restart: always
+    env_file:
+      - ./note/.env
+    ports:
+      - 27017:27017
+    entrypoint: ["/usr/bin/mongod", "--replSet", "rsmongo", "--bind_ip_all"]
+
+  mongo1:
+    image: mongo
+    container_name: mongodb1
+    restart: always
+    env_file:
+      - ./note/.env
+    ports:
+      - 27018:27017
+    entrypoint: ["/usr/bin/mongod", "--replSet", "rsmongo", "--bind_ip_all"]
+
+  mongo2:
+    image: mongo
+    container_name: mongodb2
+    restart: always
+    env_file:
+      - ./note/.env
+    ports:
+      - 27019:27017
+    entrypoint: ["/usr/bin/mongod", "--replSet", "rsmongo", "--bind_ip_all"]

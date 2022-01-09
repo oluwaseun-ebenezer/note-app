@@ -1,0 +1,17 @@
+scrape_configs:
+  - job_name: "note-app-gateway"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+
+  - job_name: "user-service"
+    metrics_path: "/user/metrics"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["host.docker.internal:3001"]
+
+  - job_name: "note-service"
+    metrics_path: "/note/metrics"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["host.docker.internal:5000"]

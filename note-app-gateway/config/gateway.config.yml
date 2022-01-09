@@ -1,0 +1,46 @@
+http:
+  port: 8080
+admin:
+  port: 9876
+  host: localhost
+apiEndpoints:
+  user-api:
+    host: localhost
+    paths: ["/user", "/user/*"]
+  note-api:
+    host: localhost
+    paths: ["/note", "/note/*"]
+serviceEndpoints:
+  user-service:
+    url: "http://user-service:3001"
+  note-service:
+    url: "http://note-service:5000"
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+  - metrics
+pipelines:
+  - name: userService
+    apiEndpoints:
+      - user-api
+    policies:
+      - metrics:
+      - proxy:
+          - action:
+              serviceEndpoint: user-service
+              changeOrigin: true
+  - name: noteService
+    apiEndpoints:
+      - note-api
+    policies:
+      - metrics:
+      - proxy:
+          - action:
+              serviceEndpoint: note-service
+              changeOrigin: true
