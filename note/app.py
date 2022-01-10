@@ -10,8 +10,21 @@ from bson.json_util import dumps
 from bson.objectid import ObjectId
 from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from prometheus_client import make_wsgi_app
+from flask_caching import Cache
+
+class RedisBaseConfig(object):
+    CACHE_TYPE = "redis"
+    CACHE_REDIS_HOST = environ["REDIS_HOST"]
+    CACHE_REDIS_PORT = environ["REDIS_PORT"]
+    CACHE_REDIS_DB = 0
+    CACHE_REDIS_URL = f'redis://{environ["REDIS_HOST"]}:{environ["REDIS_PORT"]}/0'
+    CACHE_DEFAULT_TIMEOUT = 500
 
 app = Flask(__name__)
+
+app.config.from_object(RedisBaseConfig)
+
+cache = Cache(app)
 
 app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
     '/note/metrics': make_wsgi_app()
@@ -52,6 +65,7 @@ def get_user_notes(uid):
 
 
 @app.route("/note/<int:uid>/<string:oid>", methods = ['GET'])
+@cache.cached(timeout=30, query_string=True)
 def get_note_info(uid, oid):
     """
         Get a single note info
